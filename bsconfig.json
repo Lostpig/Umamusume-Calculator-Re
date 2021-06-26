@@ -1,0 +1,24 @@
+{
+  "name": "umamusume-calc",
+  "version": "0.0.1",
+  "sources": {
+    "dir": "src",
+    "subdirs": true
+  },
+  "package-specs": {
+    "module": "es6-global",
+    "in-source": false
+  },
+  "suffix": ".bs.js",
+  "reason": {
+    "react-jsx": 3
+  },
+  "bs-dependencies": [
+    "@rescript/react",
+    "rescript-material-ui"
+  ],
+  "ppx-flags": ["rescript-material-ui-ppx/ppx"],
+  "warnings": {
+    "error": "+101"
+  }
+}
