@@ -1,8 +1,22 @@
+
+module type IsEnum = {
+  type t
+
+  let items: list<t>
+  let toString: t => string
+  let toEnum: string => t
+}
+let toEnumTuple = (type enumType, enum: module(IsEnum with type t = enumType)) => {
+  let module(Enum) = enum
+  (Enum.items, Enum.toString, Enum.toEnum)
+}
+type enumTuple<'a> = (list<'a>, 'a => string, string => 'a)
+
 module Rank = {
   type t = S | A | B | C | D | E | F | G
 
-  let list = list{S, A, B, C, D, E, F, G}
-  let string = (val: t) => {
+  let items = list{S, A, B, C, D, E, F, G}
+  let toString = (val: t) => {
     switch val {
     | S => "S"
     | A => "A"
@@ -14,7 +28,7 @@ module Rank = {
     | G => "G"
     }
   }
-  let convert = (str: string) => {
+  let toEnum = (str: string) => {
     switch str {
     | "S" => S
     | "A" => A
@@ -28,12 +42,13 @@ module Rank = {
     }
   }
 }
+let enumRank = toEnumTuple(module(Rank))
 
 module Mood = {
   type t = Perfect | Good | Normal | Bad | Terrible
 
-  let list = list{Perfect, Good, Normal, Bad, Terrible}
-  let string = (val: t) => {
+  let items = list{Perfect, Good, Normal, Bad, Terrible}
+  let toString = (val: t) => {
     switch val {
     | Perfect => "Perfect"
     | Good => "Good"
@@ -42,7 +57,7 @@ module Mood = {
     | Terrible => "Terrible"
     }
   }
-  let convert = (val: string) => {
+  let toEnum = (val: string) => {
     switch val {
     | "Perfect" => Perfect
     | "Good" => Good
@@ -53,11 +68,13 @@ module Mood = {
     }
   }
 }
+let enumMood = toEnumTuple(module(Mood))
 
 module Strategy = {
   type t = Escape | Leading | Between | Pushing
-  let list = list{Escape, Leading, Between, Pushing}
-  let string = (val: t) => {
+
+  let items = list{Escape, Leading, Between, Pushing}
+  let toString = (val: t) => {
     switch val {
     | Escape => "Escape"
     | Leading => "Leading"
@@ -65,7 +82,7 @@ module Strategy = {
     | Pushing => "Pushing"
     }
   }
-  let convert = (val: string) => {
+  let toEnum = (val: string) => {
     switch val {
     | "Escape" => Escape
     | "Leading" => Leading
@@ -75,17 +92,19 @@ module Strategy = {
     }
   }
 }
+let enumStrategy = toEnumTuple(module(Strategy))
 
 module Field = {
   type t = Turf | Dirt
-  let list = list{Turf, Dirt}
-  let string = (val: t) => {
+
+  let items = list{Turf, Dirt}
+  let toString = (val: t) => {
     switch val {
     | Turf => "Turf"
     | Dirt => "Dirt"
     }
   }
-  let convert = (val: string) => {
+  let toEnum = (val: string) => {
     switch val {
     | "Turf" => Turf
     | "Dirt" => Dirt
@@ -93,11 +112,13 @@ module Field = {
     }
   }
 }
+let enumField = toEnumTuple(module(Field))
 
 module FieldStatus = {
   type t = Good | SlightlyPoor | Poor | Bad
-  let list = list{Good, SlightlyPoor, Poor, Bad}
-  let string = (val: t) => {
+
+  let items = list{Good, SlightlyPoor, Poor, Bad}
+  let toString = (val: t) => {
     switch val {
     | Good => "Good"
     | SlightlyPoor => "SlightlyPoor"
@@ -105,7 +126,7 @@ module FieldStatus = {
     | Bad => "Bad"
     }
   }
-  let convert = (val: string) => {
+  let toEnum = (val: string) => {
     switch val {
     | "Good" => Good
     | "SlightlyPoor" => SlightlyPoor
@@ -115,11 +136,13 @@ module FieldStatus = {
     }
   }
 }
+let enumFieldStatus = toEnumTuple(module(FieldStatus))
 
 module Distance = {
   type t = Short | Mile | Medium | Long
-  let list = list{Short, Mile, Medium, Long}
-  let string = (val: t) => {
+
+  let items = list{Short, Mile, Medium, Long}
+  let toString = (val: t) => {
     switch val {
     | Short => "Short"
     | Mile => "Mile"
@@ -127,7 +150,7 @@ module Distance = {
     | Long => "Long"
     }
   }
-  let convert = (val: string) => {
+  let toEnum = (val: string) => {
     switch val {
     | "Short" => Short
     | "Mile" => Mile
@@ -145,3 +168,5 @@ module Distance = {
     }
   }
 }
+let enumDistance = toEnumTuple(module(Distance))
+

@@ -15,3 +15,12 @@ module Translate = {
     ()
   ) => React.element = "default"
 }
+
+module ExpandMore = {
+  @react.component @module("@material-ui/icons/ExpandMore")
+  external make: (
+    ~color: string=?,
+    ~fontSize: string=?,
+    ()
+  ) => React.element = "default"
+}

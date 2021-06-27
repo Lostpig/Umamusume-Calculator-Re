@@ -19,7 +19,7 @@ module Styles = %makeStyles({
     (),
   ),
   contentOnNav: Rs.make(~marginLeft="200px", ()),
-  content: Rs.make(~padding="24px", ~marginLeft="0", ~transition="200ms linear", ()),
+  content: Rs.make(~padding="24px 40px", ~marginLeft="0", ~transition="200ms linear", ()),
 })
 
 module Header = {
