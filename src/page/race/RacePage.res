@@ -1,5 +1,5 @@
 open MaterialUi
-open Variable
+open Uma.Variable
 module Rs = ReactDOMStyle
 
 let dvInt = TextField.DefaultValue.int
@@ -96,98 +96,81 @@ module UmaFormContainer = {
   }
 }
 
-type umaAttr = Speed | Stamina | Power | Guts | Knowledge
-type umaAttrs = (int, int, int, int, int)
-type umaPreference = Field | Distance | Strategy
-type umaPreferences = (Rank.t, Rank.t, Rank.t)
-type umaStatus = Mood | Strategy
-type statusTuple = (Mood.t, Strategy.t)
-type raceSettings = (Field.t, FieldStatus.t, int)
+type raceProps = {
+  attrs: Attribute.data,
+  preferences: Preference.data,
+  status: Status.data,
+  race: Race.data,
+}
+
 type patch =
-  | UmaAttr(umaAttrs)
-  | Preferences(umaPreferences)
-  | UmaStatus(statusTuple)
-  | RaceSetting(raceSettings)
+  | PatchAttr(Attribute.data)
+  | PatchPref(Preference.data)
+  | PatchStatus(Status.data)
+  | PatchRace(Race.data)
 
 module UmaAttributeForm = {
   @react.component
-  let make = (~attrs: umaAttrs, ~dispatch: patch => unit) => {
+  let make = (~attrs: Attribute.data, ~dispatch: patch => unit) => {
     let classes = Styles.useStyles()
     let (trans, _) = I18n.useSimpleTranslation()
 
-    let (speed, stamina, power, guts, knowledge) = attrs
-    let updateAttr = (umaAttr, val: int) => {
-      switch umaAttr {
-      | Speed => (val, stamina, power, guts, knowledge)
-      | Stamina => (speed, val, power, guts, knowledge)
-      | Power => (speed, stamina, val, guts, knowledge)
-      | Guts => (speed, stamina, power, val, knowledge)
-      | Knowledge => (speed, stamina, power, guts, val)
-      }
-      ->UmaAttr
-      ->dispatch
-    }
-    let handleChange = (umaAttr, evt: ReactEvent.Form.t) => {
-      let newVal = ReactEvent.Form.target(evt)["value"]->Belt.Int.fromString
-      switch newVal {
-      | Some(v) => umaAttr->updateAttr(v)
+    let handleChange = (kind, evt: ReactEvent.Form.t) => {
+      let val = ReactEvent.Form.target(evt)["value"]->Belt.Int.fromString
+      switch val {
+      | Some(v) => attrs->Attribute.update(kind, v)->PatchAttr->dispatch
       | None => ()
       }
     }
 
+    let (speed, stamina, power, guts, knowledge) = attrs
     <UmaFormContainer label={"Base Attributes"->trans}>
       <TextField
         required={true}
         className=classes.formItem
         label={"Speed"->trans}
         defaultValue={speed->dvInt}
-        onChange={Speed->handleChange}
+        onChange={Attribute.Speed->handleChange}
       />
       <TextField
         required={true}
         className=classes.formItem
         label={"Stamina"->trans}
         defaultValue={stamina->dvInt}
-        onChange={Stamina->handleChange}
+        onChange={Attribute.Stamina->handleChange}
       />
       <TextField
         required={true}
         className=classes.formItem
         label={"Power"->trans}
         defaultValue={power->dvInt}
-        onChange={Power->handleChange}
+        onChange={Attribute.Power->handleChange}
       />
       <TextField
         required={true}
         className=classes.formItem
         label={"Guts"->trans}
         defaultValue={guts->dvInt}
-        onChange={Guts->handleChange}
+        onChange={Attribute.Guts->handleChange}
       />
       <TextField
         required={true}
         className=classes.formItem
         label={"Knowledge"->trans}
         defaultValue={knowledge->dvInt}
-        onChange={Knowledge->handleChange}
+        onChange={Attribute.Knowledge->handleChange}
       />
     </UmaFormContainer>
   }
 }
 module UmaPreferenceForm = {
   @react.component
-  let make = (~pref: umaPreferences, ~dispatch: patch => unit) => {
+  let make = (~pref: Preference.data, ~dispatch: patch => unit) => {
     let (trans, _) = I18n.useSimpleTranslation()
 
     let (field, distance, strategy) = pref
-    let handleChange = (umaPreference, rank) => {
-      switch umaPreference {
-      | Field => (rank, distance, strategy)
-      | Distance => (field, rank, strategy)
-      | Strategy => (field, distance, rank)
-      }
-      ->Preferences
-      ->dispatch
+    let handleChange = (kind, value) => {
+      pref->Preference.update(kind, value)->PatchPref->dispatch
     }
 
     <UmaFormContainer label={"Preference"->trans}>
@@ -195,21 +178,21 @@ module UmaPreferenceForm = {
         id="pref-field"
         label={"Field"->trans}
         value={field}
-        onChange={Field->handleChange}
+        onChange={Preference.Field->handleChange}
         enum=enumRank
       />
       <UmaEnumSelector
         id="pref-distance"
         label={"Distance"->trans}
         value={distance}
-        onChange={Distance->handleChange}
+        onChange={Preference.Distance->handleChange}
         enum=enumRank
       />
       <UmaEnumSelector
         id="pref-strategy"
         label={"Strategy"->trans}
         value={strategy}
-        onChange={Strategy->handleChange}
+        onChange={Preference.Strategy->handleChange}
         enum=enumRank
       />
     </UmaFormContainer>
@@ -217,26 +200,27 @@ module UmaPreferenceForm = {
 }
 module UmaStatusForm = {
   @react.component
-  let make = (~status: statusTuple, ~dispatch: patch => unit) => {
+  let make = (~status: Status.data, ~dispatch: patch => unit) => {
     let (trans, _) = I18n.useSimpleTranslation()
     let (mood, strategy) = status
 
-    let moodChange = val => {
-      (val, strategy)->UmaStatus->dispatch
-    }
-    let strategyChange = val => {
-      (mood, val)->UmaStatus->dispatch
+    let statusChange = (val: Status.kind) => {
+      status->Status.update(val)->PatchStatus->dispatch
     }
 
     <UmaFormContainer label={"Umamusume Status"->trans}>
       <UmaEnumSelector
-        id="status-mood" label={"Mood"->trans} value=mood onChange=moodChange enum=enumMood
+        id="status-mood"
+        label={"Mood"->trans}
+        value=mood
+        onChange={v => v->Status.Mood->statusChange}
+        enum=enumMood
       />
       <UmaEnumSelector
         id="status-strategy"
         label={"Strategy"->trans}
         value=strategy
-        onChange=strategyChange
+        onChange={v => v->Status.Strategy->statusChange}
         enum=enumStrategy
       />
     </UmaFormContainer>
@@ -244,21 +228,21 @@ module UmaStatusForm = {
 }
 module RaceForm = {
   @react.component
-  let make = (~settings: raceSettings, ~dispatch: patch => unit) => {
+  let make = (~race: Race.data, ~dispatch: patch => unit) => {
     let classes = Styles.useStyles()
     let (trans, _) = I18n.useSimpleTranslation()
-    let (field, fstatus, length) = settings
+    let (field, fstatus, length) = race
 
     let fieldChange = val => {
-      (val, fstatus, length)->RaceSetting->dispatch
+      race->Race.update(Race.Field(val))->PatchRace->dispatch
     }
     let fstatusChange = val => {
-      (field, val, length)->RaceSetting->dispatch
+      race->Race.update(Race.FStatus(val))->PatchRace->dispatch
     }
     let distanceChange = (evt: ReactEvent.Form.t) => {
       let newVal = ReactEvent.Form.target(evt)["value"]->Belt.Int.fromString
       switch newVal {
-      | Some(v) => (field, fstatus, v)->RaceSetting->dispatch
+      | Some(v) => race->Race.update(Race.Length(v))->PatchRace->dispatch
       | None => ()
       }
     }
@@ -315,13 +299,18 @@ module ValueDisplayer = {
     </div>
   }
 }
-module CorrectionAttributes = {
+module AdjustedAttributes = {
   @react.component
-  let make = (~attrs: umaAttrs) => {
+  let make = (~raceProps) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let (speed, stamina, power, guts, knowledge) = attrs
+    let (speed, stamina, power, guts, knowledge) = Uma_Calculate.adjustAttrs(
+      raceProps.attrs,
+      raceProps.preferences,
+      raceProps.status,
+      raceProps.race,
+    )
 
-    <UmaFormContainer label={"Correction Attributes"->trans}>
+    <UmaFormContainer label={"Adjusted Attributes"->trans}>
       <ValueDisplayer label={"Speed"->trans} value={speed->React.int} />
       <ValueDisplayer label={"Stamina"->trans} value={stamina->React.int} />
       <ValueDisplayer label={"Power"->trans} value={power->React.int} />
@@ -339,8 +328,8 @@ module BaseAbilities = {
       <ValueDisplayer label={"Base Speed"->trans} value={40.00->React.float} />
       <ValueDisplayer label={"Hp"->trans} value={1550.00->React.float} />
       <ValueDisplayer label={"Hp"->trans} value={2000.00->React.float} />
-      <ValueDisplayer label={"Hp Coef"->trans} value={46.50->React.float} />
-      <ValueDisplayer label={"Spurt Coef"->trans} value={89.60->React.float} />
+      <ValueDisplayer label={"Consumption Coef"->trans} value={46.50->React.float} />
+      <ValueDisplayer label={"Consumption Coef in Spurt"->trans} value={89.60->React.float} />
     </UmaFormContainer>
   }
 }
@@ -374,7 +363,7 @@ type raceStage = {
   acceleration: float,
   time: float,
   distance: float,
-  hpDecrease: float,
+  hpConsumption: float,
 }
 module RaceDetail = {
   @react.component
@@ -388,7 +377,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "First Acceleration",
@@ -397,7 +386,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "First Cruise",
@@ -406,7 +395,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Middle Speed Regulate",
@@ -415,7 +404,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Middle Cruise",
@@ -424,7 +413,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Last Acceleration",
@@ -433,7 +422,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Last Cruise",
@@ -442,7 +431,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Spurt Acceleration",
@@ -451,7 +440,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Spurt Cruise",
@@ -460,7 +449,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
       {
         stage: "Exhaustion",
@@ -469,7 +458,7 @@ module RaceDetail = {
         acceleration: 24.21,
         time: 0.666,
         distance: 6.888,
-        hpDecrease: 14.567,
+        hpConsumption: 14.567,
       },
     ]
 
@@ -487,7 +476,7 @@ module RaceDetail = {
               <TableCell> {"Acceleration"->trans} </TableCell>
               <TableCell> {"Time"->trans} </TableCell>
               <TableCell> {"Distance"->trans} </TableCell>
-              <TableCell> {"Hp Decrease"->trans} </TableCell>
+              <TableCell> {"Hp Consumption"->trans} </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -499,7 +488,7 @@ module RaceDetail = {
                 <TableCell> {s.acceleration->React.float} </TableCell>
                 <TableCell> {s.time->React.float} </TableCell>
                 <TableCell> {s.distance->React.float} </TableCell>
-                <TableCell> {s.hpDecrease->React.float} </TableCell>
+                <TableCell> {s.hpConsumption->React.float} </TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -509,12 +498,6 @@ module RaceDetail = {
   }
 }
 
-type raceProps = {
-  attrs: umaAttrs,
-  preferences: umaPreferences,
-  status: statusTuple,
-  race: raceSettings,
-}
 @react.component
 let make = () => {
   let (trans, _) = I18n.useSimpleTranslation()
@@ -523,10 +506,10 @@ let make = () => {
   let (raceState, dispatch) = React.useReducer(
     (prev, patch) => {
       switch patch {
-      | UmaAttr(attrs) => {...prev, attrs: attrs}
-      | Preferences(preferences) => {...prev, preferences: preferences}
-      | UmaStatus(status) => {...prev, status: status}
-      | RaceSetting(race) => {...prev, race: race}
+      | PatchAttr(attrs) => {...prev, attrs: attrs}
+      | PatchPref(preferences) => {...prev, preferences: preferences}
+      | PatchStatus(status) => {...prev, status: status}
+      | PatchRace(race) => {...prev, race: race}
       }
     },
     {
@@ -542,11 +525,11 @@ let make = () => {
     <UmaAttributeForm attrs={raceState.attrs} dispatch />
     <UmaPreferenceForm pref={raceState.preferences} dispatch />
     <UmaStatusForm status={raceState.status} dispatch />
-    <RaceForm settings={raceState.race} dispatch />
+    <RaceForm race={raceState.race} dispatch />
     <Button />
     <Divider />
     <h2 className=classes.header> {"Result"->trans} </h2>
-    <CorrectionAttributes attrs={raceState.attrs} />
+    <AdjustedAttributes raceProps={raceState} />
     <BaseAbilities />
     <RaceSummary />
     <Divider />

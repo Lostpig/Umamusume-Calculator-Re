@@ -1,4 +1,6 @@
+// Game data structure
 
+// #region Enums
 module type IsEnum = {
   type t
 
@@ -161,12 +163,190 @@ module Distance = {
   }
   let fromLength = (len: int) => {
     switch len {
-      | v when v > 2400 => Long
-      | v when v > 1800 => Medium
-      | v when v > 1400 => Mile
-      | _ => Short
+    | v if v > 2400 => Long
+    | v if v > 1800 => Medium
+    | v if v > 1400 => Mile
+    | _ => Short
     }
   }
 }
 let enumDistance = toEnumTuple(module(Distance))
 
+/* not use
+
+
+
+module Weather = {
+
+
+
+  type t = Sunny | Rain | Cloudy
+
+
+
+
+
+
+
+  let items = list{Sunny, Rain, Cloudy}
+
+
+
+  let toString = (val: t) => {
+
+
+
+    switch val {
+
+
+
+    | Sunny => "Sunny"
+
+
+
+    | Rain => "Rain"
+
+
+
+    | Cloudy => "Cloudy"
+
+
+
+    }
+
+
+
+  }
+
+
+
+  let toEnum = (val: string) => {
+
+
+
+    switch val {
+
+
+
+    | "Sunny" => Sunny
+
+
+
+    | "Rain" => Rain
+
+
+
+    | "Cloudy" => Cloudy
+
+
+
+    | _ => Sunny
+
+
+
+    }
+
+
+
+  }
+
+
+
+}
+
+
+
+*/
+// #endregion
+
+module Attribute = {
+  type kind = Speed | Stamina | Power | Guts | Knowledge
+  type data = (int, int, int, int, int)
+  type f_data = (float, float, float, float, float)
+  type packed = (int, kind)
+  type f_packed = (float, kind)
+
+  let toFloats = data => {
+    let fi = Belt.Float.fromInt
+    let (speed, stamina, power, guts, knowledge) = data
+    (speed->fi, stamina->fi, power->fi, guts->fi, knowledge->fi)
+  }
+  let toInts = f_data => {
+    let ti = Belt.Float.toInt
+    let (speed, stamina, power, guts, knowledge) = f_data
+    (speed->ti, stamina->ti, power->ti, guts->ti, knowledge->ti)
+  }
+  let update = (data, kind, value: int) => {
+    let (speed, stamina, power, guts, knowledge) = data
+    switch kind {
+    | Speed => (value, stamina, power, guts, knowledge)
+    | Stamina => (speed, value, power, guts, knowledge)
+    | Power => (speed, stamina, value, guts, knowledge)
+    | Guts => (speed, stamina, power, value, knowledge)
+    | Knowledge => (speed, stamina, power, guts, value)
+    }
+  }
+
+  let pack = (val: int, kind) => (val, kind)
+  let unpack = packed => { 
+    let (v, _) = packed
+    v
+  }
+  let f_pack = (val: float, kind) => (val, kind)
+  let f_unpack = packed => { 
+    let (v, _) = packed
+    v
+  }
+}
+
+module Preference = {
+  type kind = Field | Distance | Strategy
+  type data = (Rank.t, Rank.t, Rank.t)
+
+  let update = (data, kind, value: Rank.t) => {
+    let (field, distance, strategy) = data
+    switch kind {
+    | Field => (value, distance, strategy)
+    | Distance => (field, value, strategy)
+    | Strategy => (field, distance, value)
+    }
+  }
+}
+
+module Status = {
+  type kind = Mood(Mood.t) | Strategy(Strategy.t)
+  type data = (Mood.t, Strategy.t)
+
+  let update = (data, kind) => {
+    let (mood, strategy) = data
+    switch kind {
+    | Mood(v) => (v, strategy)
+    | Strategy(v) => (mood, v)
+    }
+  }
+}
+
+module Race = {
+  type kind = Field(Field.t) | FStatus(FieldStatus.t) | Length(int) | Distance(Distance.t)
+  type data = (Field.t, FieldStatus.t, int)
+  type c_data = (Field.t, FieldStatus.t, Distance.t)
+
+  let update = (data, kind) => {
+    let (field, fstatus, length) = data
+    switch kind {
+    | Field(v) => (v, fstatus, length)
+    | FStatus(v) => (field, v, length)
+    | Length(v) => (field, fstatus, v)
+    | _ => (field, fstatus, length)
+    }
+  }
+  let c_update = (c_data, kind) => {
+    let (field, fstatus, distance) = c_data
+    switch kind {
+    | Field(v) => (v, fstatus, distance)
+    | FStatus(v) => (field, v, distance)
+    | Distance(v) => (field, fstatus, v)
+    | _ => (field, fstatus, distance)
+    }
+  }
+}
