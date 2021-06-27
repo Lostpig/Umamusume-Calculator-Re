@@ -20,6 +20,7 @@ module Styles = %makeStyles({
     ~borderWidth="1px",
     ~borderStyle="solid",
     ~borderColor=Mui_System.Colors.divider,
+    ~backgroundColor=Mui_System.Colors.white,
     ~borderRadius="8px",
     (),
   ),
@@ -42,7 +43,8 @@ module Styles = %makeStyles({
     ~fontSize="0.6rem",
     ~color=Mui_System.Colors.t_secondary,
     ~backgroundColor=Mui_System.Colors.white,
-    ~padding="0 3px",
+    ~padding="0 6px",
+    ~textAlign="center",
     (),
   ),
   displayValue: Rs.make(
@@ -50,6 +52,28 @@ module Styles = %makeStyles({
     ~height="1.1876rem;",
     ~padding="5px 5px 8px 10px",
     ~color=Mui_System.Colors.t_primary,
+    (),
+  ),
+  dpGroup: Rs.make(~position="relative", ~display="inline-flex", ()),
+  dpGroupTitle: Rs.make(
+    ~position="absolute",
+    ~fontSize="0.75rem",
+    ~top="-14px",
+    ~left="5px",
+    ~padding="1px 6px",
+    ~color=Mui_System.Colors.primary,
+    ~backgroundColor=Mui_System.Colors.white,
+    (),
+  ),
+  dpGroupLine: Rs.make(
+    ~position="absolute",
+    ~top="-3px",
+    ~left="12px",
+    ~right="27px",
+    ~height="38px",
+    ~borderStyle="solid",
+    ~borderColor=Mui_System.Colors.divider,
+    ~borderWidth="1px 1px 1px 0",
     (),
   ),
 })
@@ -299,6 +323,18 @@ module ValueDisplayer = {
     </div>
   }
 }
+module VDGroup = {
+  @react.component
+  let make = (~caption: React.element, ~children: 'children) => {
+    let classes = Styles.useStyles()
+    <div className=classes.dpGroup>
+      <span className=classes.dpGroupLine />
+      {children}
+      <span className=classes.dpGroupTitle> {caption} </span>
+    </div>
+  }
+}
+
 module AdjustedAttributes = {
   @react.component
   let make = (~raceProps) => {
@@ -325,11 +361,17 @@ module BaseAbilities = {
     let (trans, _) = I18n.useSimpleTranslation()
 
     <UmaFormContainer label={"Base Ability"->trans}>
-      <ValueDisplayer label={"Base Speed"->trans} value={40.00->React.float} />
-      <ValueDisplayer label={"Hp"->trans} value={1550.00->React.float} />
-      <ValueDisplayer label={"Hp"->trans} value={2000.00->React.float} />
-      <ValueDisplayer label={"Consumption Coef"->trans} value={46.50->React.float} />
-      <ValueDisplayer label={"Consumption Coef in Spurt"->trans} value={89.60->React.float} />
+      <ValueDisplayer
+        label={"Base Speed"->trans} sub={"m/s"->React.string} value={40.00->React.float}
+      />
+      <VDGroup caption={"Hp"->trans}>
+        <ValueDisplayer label={"Base"->trans} value={1550.00->React.float} />
+        <ValueDisplayer label={"With Skill"->trans} value={2000.00->React.float} />
+      </VDGroup>
+      <VDGroup caption={"Hp Consumption Coef"->trans}>
+        <ValueDisplayer label={"Usually"->trans} value={46.50->React.float} />
+        <ValueDisplayer label={"Spurt"->trans} value={89.60->React.float} />
+      </VDGroup>
     </UmaFormContainer>
   }
 }
@@ -339,19 +381,23 @@ module RaceSummary = {
     let (trans, _) = I18n.useSimpleTranslation()
 
     <UmaFormContainer label={"Summary"->trans}>
-      <ValueDisplayer label={"Spurt Distance"->trans} value={333.33->React.float} />
+      <ValueDisplayer
+        label={"Spurt Distance"->trans} sub={"m"->React.string} value={333.33->React.float}
+      />
       <ValueDisplayer label={"Time"->trans} value={"1:13.44"->React.string} />
       <ValueDisplayer label={"Display Time"->trans} value={"2:27.41"->React.string} />
       <ValueDisplayer label={"Hp Remained"->trans} value={450.5->React.float} />
-      <ValueDisplayer
-        label={"Exhaustion"->trans} sub={"Time"->trans} color=Danger value={"1.56s"->React.string}
-      />
-      <ValueDisplayer
-        label={"Exhaustion"->trans}
-        sub={"Distance"->trans}
-        color=Warning
-        value={"45.00m"->React.string}
-      />
+      <VDGroup caption={"Exhaustion"->trans}>
+        <ValueDisplayer
+          label={"Time"->trans} sub={"s"->React.string} color=Danger value={"1.56"->React.string}
+        />
+        <ValueDisplayer
+          label={"Distance"->trans}
+          sub={"m"->React.string}
+          color=Warning
+          value={"45.00"->React.string}
+        />
+      </VDGroup>
     </UmaFormContainer>
   }
 }

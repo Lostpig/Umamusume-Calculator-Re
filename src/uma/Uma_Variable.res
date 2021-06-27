@@ -172,91 +172,27 @@ module Distance = {
 }
 let enumDistance = toEnumTuple(module(Distance))
 
-/* not use
-
-
-
+// not used
 module Weather = {
-
-
-
   type t = Sunny | Rain | Cloudy
-
-
-
-
-
-
-
   let items = list{Sunny, Rain, Cloudy}
 
-
-
   let toString = (val: t) => {
-
-
-
     switch val {
-
-
-
     | Sunny => "Sunny"
-
-
-
     | Rain => "Rain"
-
-
-
     | Cloudy => "Cloudy"
-
-
-
     }
-
-
-
   }
-
-
-
   let toEnum = (val: string) => {
-
-
-
     switch val {
-
-
-
     | "Sunny" => Sunny
-
-
-
     | "Rain" => Rain
-
-
-
     | "Cloudy" => Cloudy
-
-
-
     | _ => Sunny
-
-
-
     }
-
-
-
   }
-
-
-
 }
-
-
-
-*/
 // #endregion
 
 module Attribute = {
@@ -288,12 +224,12 @@ module Attribute = {
   }
 
   let pack = (val: int, kind) => (val, kind)
-  let unpack = packed => { 
+  let unpack = packed => {
     let (v, _) = packed
     v
   }
   let f_pack = (val: float, kind) => (val, kind)
-  let f_unpack = packed => { 
+  let f_unpack = packed => {
     let (v, _) = packed
     v
   }
