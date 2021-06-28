@@ -337,14 +337,9 @@ module VDGroup = {
 
 module AdjustedAttributes = {
   @react.component
-  let make = (~raceProps) => {
+  let make = (~adjAttrs: Attribute.f_data) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let (speed, stamina, power, guts, knowledge) = Uma_Calculate.adjustAttrs(
-      raceProps.attrs,
-      raceProps.preferences,
-      raceProps.status,
-      raceProps.race,
-    )
+    let (speed, stamina, power, guts, knowledge) = Attribute.toInts(adjAttrs)
 
     <UmaFormContainer label={"Adjusted Attributes"->trans}>
       <ValueDisplayer label={"Speed"->trans} value={speed->React.int} />
@@ -357,20 +352,21 @@ module AdjustedAttributes = {
 }
 module BaseAbilities = {
   @react.component
-  let make = () => {
+  let make = (~r: raceProps, ~adjAttrs: Attribute.f_data) => {
     let (trans, _) = I18n.useSimpleTranslation()
+    let (baseSpeed, baseHp, skillPlusHp, hpCoef, spurtCoef) = adjAttrs->Uma_Calculate.computeBaseAbility(r.status, r.race)
 
     <UmaFormContainer label={"Base Ability"->trans}>
       <ValueDisplayer
-        label={"Base Speed"->trans} sub={"m/s"->React.string} value={40.00->React.float}
+        label={"Base Speed"->trans} sub={"m/s"->React.string} value={baseSpeed->React.float}
       />
       <VDGroup caption={"Hp"->trans}>
-        <ValueDisplayer label={"Base"->trans} value={1550.00->React.float} />
-        <ValueDisplayer label={"With Skill"->trans} value={2000.00->React.float} />
+        <ValueDisplayer label={"Base"->trans} value={baseHp->React.float} />
+        <ValueDisplayer label={"With Skill"->trans} value={skillPlusHp->React.float} />
       </VDGroup>
       <VDGroup caption={"Hp Consumption Coef"->trans}>
-        <ValueDisplayer label={"Usually"->trans} value={46.50->React.float} />
-        <ValueDisplayer label={"Spurt"->trans} value={89.60->React.float} />
+        <ValueDisplayer label={"Usually"->trans} value={hpCoef->React.float} />
+        <ValueDisplayer label={"Spurt"->trans} value={spurtCoef->React.float} />
       </VDGroup>
     </UmaFormContainer>
   }
@@ -544,6 +540,11 @@ module RaceDetail = {
   }
 }
 
+let toAdjAttrs = (r: raceProps) => {
+  let attrCalc = Uma_Calculate.calcOf(r.preferences, r.status, r.race)
+  r.attrs->Uma_Calculate.adjustAttrs(attrCalc)
+}
+
 @react.component
 let make = () => {
   let (trans, _) = I18n.useSimpleTranslation()
@@ -566,6 +567,14 @@ let make = () => {
     },
   )
 
+  let (adjAttrs, setAdjAttrs) = React.useState(_ => toAdjAttrs(raceState))
+
+  React.useEffect1(() => {
+    let n = toAdjAttrs(raceState)
+    setAdjAttrs(_ => n)
+    None
+  }, [raceState])
+
   <>
     <h2 className=classes.header> {"Input"->trans} </h2>
     <UmaAttributeForm attrs={raceState.attrs} dispatch />
@@ -575,8 +584,8 @@ let make = () => {
     <Button />
     <Divider />
     <h2 className=classes.header> {"Result"->trans} </h2>
-    <AdjustedAttributes raceProps={raceState} />
-    <BaseAbilities />
+    <AdjustedAttributes adjAttrs={adjAttrs} />
+    <BaseAbilities adjAttrs={adjAttrs} r={raceState} />
     <RaceSummary />
     <Divider />
     <h2 className=classes.header> {"Details"->trans} </h2>

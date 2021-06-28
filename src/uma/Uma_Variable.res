@@ -223,12 +223,12 @@ module Attribute = {
     }
   }
 
-  let pack = (val: int, kind) => (val, kind)
+  let pack = (kind, val: int) => (val, kind)
   let unpack = packed => {
     let (v, _) = packed
     v
   }
-  let f_pack = (val: float, kind) => (val, kind)
+  let f_pack = (kind, val: float) => (val, kind)
   let f_unpack = packed => {
     let (v, _) = packed
     v

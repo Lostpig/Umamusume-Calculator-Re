@@ -62,3 +62,15 @@ module FieldFactor = {
     }
   }
 }
+
+module StrategyFactor = {
+  let ofHp = (param, strategy) => {
+    param *.
+    switch strategy {
+    | Strategy.Escape => 0.95
+    | Strategy.Leading => 0.89
+    | Strategy.Between => 1.0
+    | Strategy.Pushing => 0.995
+    }
+  }
+}
