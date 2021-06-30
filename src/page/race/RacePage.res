@@ -3,6 +3,7 @@ open Uma.Variable
 module Rs = ReactDOMStyle
 
 let dvInt = TextField.DefaultValue.int
+let ff3 = (num: float) => Js.Float.toFixedWithPrecision(num, ~digits=3)->React.string
 
 module Styles = %makeStyles({
   header: Rs.make(~margin="2rem 0", ()),
@@ -337,9 +338,9 @@ module VDGroup = {
 
 module AdjustedAttributes = {
   @react.component
-  let make = (~adjAttrs: Attribute.f_data) => {
+  let make = (~adjAttrs: Attribute.data) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let (speed, stamina, power, guts, knowledge) = Attribute.toInts(adjAttrs)
+    let (speed, stamina, power, guts, knowledge) = adjAttrs
 
     <UmaFormContainer label={"Adjusted Attributes"->trans}>
       <ValueDisplayer label={"Speed"->trans} value={speed->React.int} />
@@ -351,22 +352,23 @@ module AdjustedAttributes = {
   }
 }
 module BaseAbilities = {
+  module BP = Uma_Calculate.BaseParameter
+
   @react.component
-  let make = (~r: raceProps, ~adjAttrs: Attribute.f_data) => {
+  let make = (~base: BP.t) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let (baseSpeed, baseHp, skillPlusHp, hpCoef, spurtCoef) = adjAttrs->Uma_Calculate.computeBaseAbility(r.status, r.race)
 
     <UmaFormContainer label={"Base Ability"->trans}>
       <ValueDisplayer
-        label={"Base Speed"->trans} sub={"m/s"->React.string} value={baseSpeed->React.float}
+        label={"Base Speed"->trans} sub={"m/s"->React.string} value={base.baseSpeed->ff3}
       />
       <VDGroup caption={"Hp"->trans}>
-        <ValueDisplayer label={"Base"->trans} value={baseHp->React.float} />
-        <ValueDisplayer label={"With Skill"->trans} value={skillPlusHp->React.float} />
+        <ValueDisplayer label={"Base"->trans} value={base.hp->ff3} />
+        <ValueDisplayer label={"With Skill"->trans} value={0.0->ff3} />
       </VDGroup>
       <VDGroup caption={"Hp Consumption Coef"->trans}>
-        <ValueDisplayer label={"Usually"->trans} value={hpCoef->React.float} />
-        <ValueDisplayer label={"Spurt"->trans} value={spurtCoef->React.float} />
+        <ValueDisplayer label={"Usually"->trans} value={base.hpCoef->ff3} />
+        <ValueDisplayer label={"Spurt"->trans} value={base.spurtCoef->ff3} />
       </VDGroup>
     </UmaFormContainer>
   }
@@ -378,11 +380,11 @@ module RaceSummary = {
 
     <UmaFormContainer label={"Summary"->trans}>
       <ValueDisplayer
-        label={"Spurt Distance"->trans} sub={"m"->React.string} value={333.33->React.float}
+        label={"Spurt Distance"->trans} sub={"m"->React.string} value={333.33->ff3}
       />
       <ValueDisplayer label={"Time"->trans} value={"1:13.44"->React.string} />
       <ValueDisplayer label={"Display Time"->trans} value={"2:27.41"->React.string} />
-      <ValueDisplayer label={"Hp Remained"->trans} value={450.5->React.float} />
+      <ValueDisplayer label={"Hp Remained"->trans} value={450.5->ff3} />
       <VDGroup caption={"Exhaustion"->trans}>
         <ValueDisplayer
           label={"Time"->trans} sub={"s"->React.string} color=Danger value={"1.56"->React.string}
@@ -409,134 +411,94 @@ type raceStage = {
 }
 module RaceDetail = {
   @react.component
-  let make = () => {
+  let make = (~result: Uma_Calculate.raceResult) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let stages: array<raceStage> = [
-      {
-        stage: "Starting",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "First Acceleration",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "First Cruise",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Middle Speed Regulate",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Middle Cruise",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Last Acceleration",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Last Cruise",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Spurt Acceleration",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Spurt Cruise",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-      {
-        stage: "Exhaustion",
-        spStart: 3.00,
-        spTarget: 17.850,
-        acceleration: 24.21,
-        time: 0.666,
-        distance: 6.888,
-        hpConsumption: 14.567,
-      },
-    ]
+    let { starting, first, middle, final, spurt, exhaustion } = result
 
-    <Accordion>
-      <AccordionSummary expandIcon={<Icons.ExpandMore />}>
-        <Typography> {"Race Details"->trans} </Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell> {"Stage"->trans} </TableCell>
-              <TableCell> {"Start Speed"->trans} </TableCell>
-              <TableCell> {"Target Speed"->trans} </TableCell>
-              <TableCell> {"Acceleration"->trans} </TableCell>
-              <TableCell> {"Time"->trans} </TableCell>
-              <TableCell> {"Distance"->trans} </TableCell>
-              <TableCell> {"Hp Consumption"->trans} </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {stages->Belt.Array.map(s =>
-              <TableRow key={s.stage}>
-                <TableCell> {s.stage->trans} </TableCell>
-                <TableCell> {s.spStart->React.float} </TableCell>
-                <TableCell> {s.spTarget->React.float} </TableCell>
-                <TableCell> {s.acceleration->React.float} </TableCell>
-                <TableCell> {s.time->React.float} </TableCell>
-                <TableCell> {s.distance->React.float} </TableCell>
-                <TableCell> {s.hpConsumption->React.float} </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </AccordionDetails>
-    </Accordion>
+    let (v0, v1) = starting.speed
+    let (v2, v3, v4) = first.speed
+    let (v5, v6) = middle.speed
+    let (v7, v8, v9) = final.speed
+    let (vs1, vs2, vs3) = spurt.speed
+    let (ve1, ve2, ve3) = exhaustion.speed
+
+    let sum_time = starting.time +. first.time +. middle.time +. final.time +. spurt.time +. exhaustion.time
+    let sum_dis = starting.distance +. first.distance +. middle.distance +. final.distance +. spurt.distance +. exhaustion.distance
+    let sum_hp = starting.hp_cost +. first.hp_cost +. middle.hp_cost +. final.hp_cost +. spurt.hp_cost +. exhaustion.hp_cost
+    <>
+      <UmaFormContainer label={"Stage Starting"->trans}>
+        <VDGroup caption={"Speed"->trans}>
+          <ValueDisplayer label={"Start"->trans} value={v0->ff3} />
+          <ValueDisplayer label={"Target"->trans} value={v1->ff3} />
+          <ValueDisplayer label={"End"->trans} value={v1->ff3} />
+        </VDGroup>
+        <ValueDisplayer label={"Acceleration"->trans} value={starting.acceleration->ff3} />
+        <ValueDisplayer label={"Time"->trans} value={starting.time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={starting.distance->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={starting.hp_cost->ff3} />
+      </UmaFormContainer>
+      <UmaFormContainer label={"Stage First"->trans}>
+        <VDGroup caption={"Speed"->trans}>
+          <ValueDisplayer label={"Start"->trans} value={v2->ff3} />
+          <ValueDisplayer label={"Target"->trans} value={v3->ff3} />
+          <ValueDisplayer label={"End"->trans} value={v4->ff3} />
+        </VDGroup>
+        <ValueDisplayer label={"Acceleration"->trans} value={first.acceleration->ff3} />
+        <ValueDisplayer label={"Time"->trans} value={first.time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={first.distance->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={first.hp_cost->ff3} />
+      </UmaFormContainer>
+      <UmaFormContainer label={"Stage Middle"->trans}>
+        <VDGroup caption={"Speed"->trans}>
+          <ValueDisplayer label={"Start"->trans} value={v5->ff3} />
+          <ValueDisplayer label={"Target"->trans} value={v6->ff3} />
+          <ValueDisplayer label={"End"->trans} value={v6->ff3} />
+        </VDGroup>
+        <ValueDisplayer label={"Acceleration"->trans} value={middle.acceleration->ff3} />
+        <ValueDisplayer label={"Time"->trans} value={middle.time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={middle.distance->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={middle.hp_cost->ff3} />
+      </UmaFormContainer>
+      <UmaFormContainer label={"Stage Last"->trans}>
+        <VDGroup caption={"Speed"->trans}>
+          <ValueDisplayer label={"Start"->trans} value={v7->ff3} />
+          <ValueDisplayer label={"Target"->trans} value={v8->ff3} />
+          <ValueDisplayer label={"End"->trans} value={v9->ff3} />
+        </VDGroup>
+        <ValueDisplayer label={"Acceleration"->trans} value={final.acceleration->ff3} />
+        <ValueDisplayer label={"Time"->trans} value={final.time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={final.distance->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={final.hp_cost->ff3} />
+      </UmaFormContainer>
+      <UmaFormContainer label={"Stage Spurt"->trans}>
+        <VDGroup caption={"Speed"->trans}>
+          <ValueDisplayer label={"Start"->trans} value={vs1->ff3} />
+          <ValueDisplayer label={"Target"->trans} value={vs2->ff3} />
+          <ValueDisplayer label={"End"->trans} value={vs3->ff3} />
+        </VDGroup>
+        <ValueDisplayer label={"Acceleration"->trans} value={spurt.acceleration->ff3} />
+        <ValueDisplayer label={"Time"->trans} value={spurt.time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={spurt.distance->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={spurt.hp_cost->ff3} />
+      </UmaFormContainer>
+      <UmaFormContainer label={"Stage Exhaustion"->trans}>
+        <VDGroup caption={"Speed"->trans}>
+          <ValueDisplayer label={"Start"->trans} value={ve1->ff3} />
+          <ValueDisplayer label={"Target"->trans} value={ve2->ff3} />
+          <ValueDisplayer label={"End"->trans} value={ve3->ff3} />
+        </VDGroup>
+        <ValueDisplayer label={"Acceleration"->trans} value={exhaustion.acceleration->ff3} />
+        <ValueDisplayer label={"Time"->trans} value={exhaustion.time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={exhaustion.distance->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={exhaustion.hp_cost->ff3} />
+      </UmaFormContainer>
+
+      <UmaFormContainer label={"Sum"->trans}>
+        <ValueDisplayer label={"Time"->trans} value={sum_time->ff3} />
+        <ValueDisplayer label={"Distance"->trans} value={sum_dis->ff3} />
+        <ValueDisplayer label={"HP Cost"->trans} value={sum_hp->ff3} />
+      </UmaFormContainer>
+    </>
   }
 }
 
@@ -566,14 +528,16 @@ let make = () => {
       race: (Field.Turf, FieldStatus.Good, 1600),
     },
   )
-
-  let (adjAttrs, setAdjAttrs) = React.useState(_ => toAdjAttrs(raceState))
-
-  React.useEffect1(() => {
-    let n = toAdjAttrs(raceState)
-    setAdjAttrs(_ => n)
-    None
-  }, [raceState])
+  let (result, setResult) = React.useState(_ => None)
+  let onClick = _ => {
+    let res = Uma_Calculate.clac_race(
+      ~attrs=raceState.attrs,
+      ~preferences=raceState.preferences,
+      ~status=raceState.status,
+      ~race=raceState.race,
+    )
+    setResult(_ => Some(res))
+  }
 
   <>
     <h2 className=classes.header> {"Input"->trans} </h2>
@@ -581,14 +545,23 @@ let make = () => {
     <UmaPreferenceForm pref={raceState.preferences} dispatch />
     <UmaStatusForm status={raceState.status} dispatch />
     <RaceForm race={raceState.race} dispatch />
-    <Button />
-    <Divider />
-    <h2 className=classes.header> {"Result"->trans} </h2>
-    <AdjustedAttributes adjAttrs={adjAttrs} />
-    <BaseAbilities adjAttrs={adjAttrs} r={raceState} />
-    <RaceSummary />
-    <Divider />
-    <h2 className=classes.header> {"Details"->trans} </h2>
-    <RaceDetail />
+    <div> <Button onClick> {"Calculate"->trans} </Button> </div>
+    {
+      switch result {
+        | Some(v) => {
+          <>
+            <Divider />
+            <h2 className=classes.header> {"Result"->trans} </h2>
+            <AdjustedAttributes adjAttrs={v.attrs} />
+            <BaseAbilities base={v.base} />
+            <RaceSummary />
+            <Divider />
+            <h2 className=classes.header> {"Details"->trans} </h2>
+            <RaceDetail result={v} />
+          </>
+        }
+        | None => React.null
+      }
+    }
   </>
 }

@@ -195,6 +195,10 @@ module Weather = {
 }
 // #endregion
 
+module RaceStage = {
+  type t = First | Middle | Last
+}
+
 module Attribute = {
   type kind = Speed | Stamina | Power | Guts | Knowledge
   type data = (int, int, int, int, int)
@@ -245,6 +249,14 @@ module Preference = {
     | Field => (value, distance, strategy)
     | Distance => (field, value, strategy)
     | Strategy => (field, distance, value)
+    }
+  }
+  let get = (data, kind) => {
+    let (field, distance, strategy) = data
+    switch kind {
+    | Field => field
+    | Distance => distance
+    | Strategy => strategy
     }
   }
 }
