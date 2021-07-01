@@ -201,22 +201,22 @@ module RaceStage = {
 
 module Attribute = {
   type kind = Speed | Stamina | Power | Guts | Knowledge
-  type data = (int, int, int, int, int)
-  type f_data = (float, float, float, float, float)
-  type packed = (int, kind)
-  type f_packed = (float, kind)
+  type data<'a> = ('a, 'a, 'a, 'a, 'a)
+  type dataInt = data<int>
+  type dataFloat = data<float>
+  type kindValue<'a> = ('a, kind)
 
-  let toFloats = data => {
+  let toFloats: dataInt => dataFloat = (data) => {
     let fi = Belt.Float.fromInt
     let (speed, stamina, power, guts, knowledge) = data
     (speed->fi, stamina->fi, power->fi, guts->fi, knowledge->fi)
   }
-  let toInts = f_data => {
+  let toInts: dataFloat => dataInt = (data) => {
     let ti = Belt.Float.toInt
-    let (speed, stamina, power, guts, knowledge) = f_data
+    let (speed, stamina, power, guts, knowledge) = data
     (speed->ti, stamina->ti, power->ti, guts->ti, knowledge->ti)
   }
-  let update = (data, kind, value: int) => {
+  let update = (data: data<'a>, kind, value: 'a) => {
     let (speed, stamina, power, guts, knowledge) = data
     switch kind {
     | Speed => (value, stamina, power, guts, knowledge)
@@ -226,15 +226,22 @@ module Attribute = {
     | Knowledge => (speed, stamina, power, guts, value)
     }
   }
-
-  let pack = (kind, val: int) => (val, kind)
-  let unpack = packed => {
-    let (v, _) = packed
-    v
+  let get = (data: data<'a>, kind) => {
+    let (speed, stamina, power, guts, knowledge) = data
+    switch kind {
+    | Speed => speed
+    | Stamina => stamina
+    | Power => power
+    | Guts => guts
+    | Knowledge => knowledge
+    }
   }
-  let f_pack = (kind, val: float) => (val, kind)
-  let f_unpack = packed => {
-    let (v, _) = packed
+
+  let bindKind = (kind, v: 'a) => {
+    (v, kind)
+  }
+  let extractValue = (kv: kindValue<'a>) => {
+    let (v, _) = kv
     v
   }
 }
@@ -277,7 +284,6 @@ module Status = {
 module Race = {
   type kind = Field(Field.t) | FStatus(FieldStatus.t) | Length(int) | Distance(Distance.t)
   type data = (Field.t, FieldStatus.t, int)
-  type c_data = (Field.t, FieldStatus.t, Distance.t)
 
   let update = (data, kind) => {
     let (field, fstatus, length) = data
@@ -286,15 +292,6 @@ module Race = {
     | FStatus(v) => (field, v, length)
     | Length(v) => (field, fstatus, v)
     | _ => (field, fstatus, length)
-    }
-  }
-  let c_update = (c_data, kind) => {
-    let (field, fstatus, distance) = c_data
-    switch kind {
-    | Field(v) => (v, fstatus, distance)
-    | FStatus(v) => (field, v, distance)
-    | Distance(v) => (field, fstatus, v)
-    | _ => (field, fstatus, distance)
     }
   }
 }

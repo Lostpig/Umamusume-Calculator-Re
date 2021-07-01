@@ -1,6 +1,7 @@
 open MaterialUi
 open Uma.Variable
 module Rs = ReactDOMStyle
+module Calculate = Uma_Calculate
 
 let dvInt = TextField.DefaultValue.int
 let ff3 = (num: float) => Js.Float.toFixedWithPrecision(num, ~digits=3)->React.string
@@ -122,21 +123,21 @@ module UmaFormContainer = {
 }
 
 type raceProps = {
-  attrs: Attribute.data,
+  attrs: Attribute.dataInt,
   preferences: Preference.data,
   status: Status.data,
   race: Race.data,
 }
 
 type patch =
-  | PatchAttr(Attribute.data)
+  | PatchAttr(Attribute.dataInt)
   | PatchPref(Preference.data)
   | PatchStatus(Status.data)
   | PatchRace(Race.data)
 
 module UmaAttributeForm = {
   @react.component
-  let make = (~attrs: Attribute.data, ~dispatch: patch => unit) => {
+  let make = (~attrs: Attribute.dataInt, ~dispatch: patch => unit) => {
     let classes = Styles.useStyles()
     let (trans, _) = I18n.useSimpleTranslation()
 
@@ -338,9 +339,9 @@ module VDGroup = {
 
 module AdjustedAttributes = {
   @react.component
-  let make = (~adjAttrs: Attribute.data) => {
+  let make = (~instance: Calculate.raceInstance) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let (speed, stamina, power, guts, knowledge) = adjAttrs
+    let (speed, stamina, power, guts, knowledge) = instance.parameters.attribute->Attribute.toInts
 
     <UmaFormContainer label={"Adjusted Attributes"->trans}>
       <ValueDisplayer label={"Speed"->trans} value={speed->React.int} />
@@ -352,11 +353,10 @@ module AdjustedAttributes = {
   }
 }
 module BaseAbilities = {
-  module BP = Uma_Calculate.BaseParameter
-
   @react.component
-  let make = (~base: BP.t) => {
+  let make = (~instance: Calculate.raceInstance) => {
     let (trans, _) = I18n.useSimpleTranslation()
+    let base = instance.parameters.base
 
     <UmaFormContainer label={"Base Ability"->trans}>
       <ValueDisplayer
@@ -375,136 +375,98 @@ module BaseAbilities = {
 }
 module RaceSummary = {
   @react.component
-  let make = () => {
+  let make = (~instance: Calculate.raceInstance) => {
     let (trans, _) = I18n.useSimpleTranslation()
+    let {starting, first, middle, last, spurt, exhaustion} = instance
+    let stages = [starting, first, middle, last, spurt, exhaustion]
+
+    let spurtDistance = spurt.distance
+    let time = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.time)
+    let displayTime = time *. 1.18
+    let cost = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.cost)
+    let surplusHp = instance.parameters.base.hp -. cost
+
+    let exTimeColor = exhaustion.time > 1.0 ? Danger : exhaustion.time > 0.1 ? Warning : Surplus
+    let exDisColor =
+      exhaustion.distance > 50.0 ? Danger : exhaustion.distance > 10.0 ? Warning : Surplus
 
     <UmaFormContainer label={"Summary"->trans}>
       <ValueDisplayer
-        label={"Spurt Distance"->trans} sub={"m"->React.string} value={333.33->ff3}
+        label={"Spurt Distance"->trans} sub={"m"->React.string} value={spurtDistance->ff3}
       />
-      <ValueDisplayer label={"Time"->trans} value={"1:13.44"->React.string} />
-      <ValueDisplayer label={"Display Time"->trans} value={"2:27.41"->React.string} />
-      <ValueDisplayer label={"Hp Remained"->trans} value={450.5->ff3} />
+      <ValueDisplayer label={"Time"->trans} sub={"s"->React.string} value={time->ff3} />
+      <ValueDisplayer
+        label={"Display Time"->trans} sub={"s"->React.string} value={displayTime->ff3}
+      />
+      <ValueDisplayer label={"Hp Remained"->trans} value={surplusHp->ff3} />
       <VDGroup caption={"Exhaustion"->trans}>
         <ValueDisplayer
-          label={"Time"->trans} sub={"s"->React.string} color=Danger value={"1.56"->React.string}
+          label={"Time"->trans}
+          sub={"s"->React.string}
+          color=exTimeColor
+          value={exhaustion.time->ff3}
         />
         <ValueDisplayer
           label={"Distance"->trans}
           sub={"m"->React.string}
-          color=Warning
-          value={"45.00"->React.string}
+          color=exDisColor
+          value={exhaustion.distance->ff3}
         />
       </VDGroup>
     </UmaFormContainer>
   }
 }
-
-type raceStage = {
-  stage: string,
-  spStart: float,
-  spTarget: float,
-  acceleration: float,
-  time: float,
-  distance: float,
-  hpConsumption: float,
-}
-module RaceDetail = {
+module StageDetail = {
   @react.component
-  let make = (~result: Uma_Calculate.raceResult) => {
+  let make = (~instance: Calculate.raceInstance) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let { starting, first, middle, final, spurt, exhaustion } = result
+    let {starting, first, middle, last, spurt, exhaustion} = instance
 
-    let (v0, v1) = starting.speed
-    let (v2, v3, v4) = first.speed
-    let (v5, v6) = middle.speed
-    let (v7, v8, v9) = final.speed
-    let (vs1, vs2, vs3) = spurt.speed
-    let (ve1, ve2, ve3) = exhaustion.speed
+    let stageNames = ["Starting", "First", "Middle", "Last", "Spurt", "Exhaustion"]
+    let stages = [starting, first, middle, last, spurt, exhaustion]
 
-    let sum_time = starting.time +. first.time +. middle.time +. final.time +. spurt.time +. exhaustion.time
-    let sum_dis = starting.distance +. first.distance +. middle.distance +. final.distance +. spurt.distance +. exhaustion.distance
-    let sum_hp = starting.hp_cost +. first.hp_cost +. middle.hp_cost +. final.hp_cost +. spurt.hp_cost +. exhaustion.hp_cost
-    <>
-      <UmaFormContainer label={"Stage Starting"->trans}>
-        <VDGroup caption={"Speed"->trans}>
-          <ValueDisplayer label={"Start"->trans} value={v0->ff3} />
-          <ValueDisplayer label={"Target"->trans} value={v1->ff3} />
-          <ValueDisplayer label={"End"->trans} value={v1->ff3} />
-        </VDGroup>
-        <ValueDisplayer label={"Acceleration"->trans} value={starting.acceleration->ff3} />
-        <ValueDisplayer label={"Time"->trans} value={starting.time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={starting.distance->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={starting.hp_cost->ff3} />
-      </UmaFormContainer>
-      <UmaFormContainer label={"Stage First"->trans}>
-        <VDGroup caption={"Speed"->trans}>
-          <ValueDisplayer label={"Start"->trans} value={v2->ff3} />
-          <ValueDisplayer label={"Target"->trans} value={v3->ff3} />
-          <ValueDisplayer label={"End"->trans} value={v4->ff3} />
-        </VDGroup>
-        <ValueDisplayer label={"Acceleration"->trans} value={first.acceleration->ff3} />
-        <ValueDisplayer label={"Time"->trans} value={first.time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={first.distance->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={first.hp_cost->ff3} />
-      </UmaFormContainer>
-      <UmaFormContainer label={"Stage Middle"->trans}>
-        <VDGroup caption={"Speed"->trans}>
-          <ValueDisplayer label={"Start"->trans} value={v5->ff3} />
-          <ValueDisplayer label={"Target"->trans} value={v6->ff3} />
-          <ValueDisplayer label={"End"->trans} value={v6->ff3} />
-        </VDGroup>
-        <ValueDisplayer label={"Acceleration"->trans} value={middle.acceleration->ff3} />
-        <ValueDisplayer label={"Time"->trans} value={middle.time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={middle.distance->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={middle.hp_cost->ff3} />
-      </UmaFormContainer>
-      <UmaFormContainer label={"Stage Last"->trans}>
-        <VDGroup caption={"Speed"->trans}>
-          <ValueDisplayer label={"Start"->trans} value={v7->ff3} />
-          <ValueDisplayer label={"Target"->trans} value={v8->ff3} />
-          <ValueDisplayer label={"End"->trans} value={v9->ff3} />
-        </VDGroup>
-        <ValueDisplayer label={"Acceleration"->trans} value={final.acceleration->ff3} />
-        <ValueDisplayer label={"Time"->trans} value={final.time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={final.distance->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={final.hp_cost->ff3} />
-      </UmaFormContainer>
-      <UmaFormContainer label={"Stage Spurt"->trans}>
-        <VDGroup caption={"Speed"->trans}>
-          <ValueDisplayer label={"Start"->trans} value={vs1->ff3} />
-          <ValueDisplayer label={"Target"->trans} value={vs2->ff3} />
-          <ValueDisplayer label={"End"->trans} value={vs3->ff3} />
-        </VDGroup>
-        <ValueDisplayer label={"Acceleration"->trans} value={spurt.acceleration->ff3} />
-        <ValueDisplayer label={"Time"->trans} value={spurt.time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={spurt.distance->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={spurt.hp_cost->ff3} />
-      </UmaFormContainer>
-      <UmaFormContainer label={"Stage Exhaustion"->trans}>
-        <VDGroup caption={"Speed"->trans}>
-          <ValueDisplayer label={"Start"->trans} value={ve1->ff3} />
-          <ValueDisplayer label={"Target"->trans} value={ve2->ff3} />
-          <ValueDisplayer label={"End"->trans} value={ve3->ff3} />
-        </VDGroup>
-        <ValueDisplayer label={"Acceleration"->trans} value={exhaustion.acceleration->ff3} />
-        <ValueDisplayer label={"Time"->trans} value={exhaustion.time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={exhaustion.distance->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={exhaustion.hp_cost->ff3} />
-      </UmaFormContainer>
+    let sumTime = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.time)
+    let sumDistance = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.distance)
+    let sumCost = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.cost)
 
-      <UmaFormContainer label={"Sum"->trans}>
-        <ValueDisplayer label={"Time"->trans} value={sum_time->ff3} />
-        <ValueDisplayer label={"Distance"->trans} value={sum_dis->ff3} />
-        <ValueDisplayer label={"HP Cost"->trans} value={sum_hp->ff3} />
-      </UmaFormContainer>
-    </>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell> {"Stage"->trans} </TableCell>
+          <TableCell> {"Start Speed"->trans} </TableCell>
+          <TableCell> {"Target Speed"->trans} </TableCell>
+          <TableCell> {"End Speed"->trans} </TableCell>
+          <TableCell> {"Acceleration"->trans} </TableCell>
+          <TableCell> {"Time"->trans} </TableCell>
+          <TableCell> {"Distance"->trans} </TableCell>
+          <TableCell> {"Hp Decrease"->trans} </TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {stages
+        ->Belt.Array.mapWithIndex((i, s) => {
+          let (v0, v1, vTarget) = s.speed
+          <TableRow key={stageNames[i]}>
+            <TableCell> {stageNames[i]->trans} </TableCell>
+            <TableCell> {v0->ff3} </TableCell>
+            <TableCell> {vTarget->ff3} </TableCell>
+            <TableCell> {v1->ff3} </TableCell>
+            <TableCell> {s.acceleration->ff3} </TableCell>
+            <TableCell> {s.time->ff3} </TableCell>
+            <TableCell> {s.distance->ff3} </TableCell>
+            <TableCell> {s.cost->ff3} </TableCell>
+          </TableRow>
+        })
+        ->React.array}
+        <TableRow>
+          <TableCell colSpan={5}> {"Sum"->trans} </TableCell>
+          <TableCell> {sumTime->ff3} </TableCell>
+          <TableCell> {sumDistance->ff3} </TableCell>
+          <TableCell> {sumCost->ff3} </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
   }
-}
-
-let toAdjAttrs = (r: raceProps) => {
-  let attrCalc = Uma_Calculate.calcOf(r.preferences, r.status, r.race)
-  r.attrs->Uma_Calculate.adjustAttrs(attrCalc)
 }
 
 @react.component
@@ -530,13 +492,15 @@ let make = () => {
   )
   let (result, setResult) = React.useState(_ => None)
   let onClick = _ => {
-    let res = Uma_Calculate.clac_race(
-      ~attrs=raceState.attrs,
-      ~preferences=raceState.preferences,
-      ~status=raceState.status,
-      ~race=raceState.race,
-    )
-    setResult(_ => Some(res))
+    let options: Calculate.raceOptions = {
+      race: raceState.race,
+      preference: raceState.preferences,
+      status: raceState.status,
+      attribute: raceState.attrs,
+    }
+    let instance = Calculate.calcRaceInstance(options)
+
+    setResult(_ => Some(instance))
   }
 
   <>
@@ -546,22 +510,18 @@ let make = () => {
     <UmaStatusForm status={raceState.status} dispatch />
     <RaceForm race={raceState.race} dispatch />
     <div> <Button onClick> {"Calculate"->trans} </Button> </div>
-    {
-      switch result {
-        | Some(v) => {
-          <>
-            <Divider />
-            <h2 className=classes.header> {"Result"->trans} </h2>
-            <AdjustedAttributes adjAttrs={v.attrs} />
-            <BaseAbilities base={v.base} />
-            <RaceSummary />
-            <Divider />
-            <h2 className=classes.header> {"Details"->trans} </h2>
-            <RaceDetail result={v} />
-          </>
-        }
-        | None => React.null
-      }
-    }
+    {switch result {
+    | Some(v) => <>
+        <Divider />
+        <h2 className=classes.header> {"Result"->trans} </h2>
+        <AdjustedAttributes instance={v} />
+        <BaseAbilities instance={v} />
+        <RaceSummary instance={v} />
+        <Divider />
+        <h2 className=classes.header> {"Details"->trans} </h2>
+        <StageDetail instance={v} />
+      </>
+    | None => React.null
+    }}
   </>
 }

@@ -1,8 +1,8 @@
 open Uma_Variable
 
 module PreferenceFactor = {
-  let forAttributeOfStrategy = (packed, rank) => {
-    let (v, attr) = packed
+  let forAttributeOfStrategy = (param, rank) => {
+    let (v, attr) = param
     let adjv = switch attr {
     | Attribute.Knowledge =>
       switch rank {
@@ -62,8 +62,8 @@ module PreferenceFactor = {
 }
 
 module MoodFactor = {
-  let forAttribute = (packed, mood) => {
-    let (v, attr) = packed
+  let forAttribute = (param, mood) => {
+    let (v, attr) = param
     let adjv = switch mood {
     | Mood.Perfect => v *. 1.04
     | Mood.Good => v *. 1.02
@@ -77,8 +77,8 @@ module MoodFactor = {
 }
 
 module FieldFactor = {
-  let forAttribute = (packed, field: Field.t, fstatus: FieldStatus.t) => {
-    let (v, attr) = packed
+  let forAttribute = (param, field: Field.t, fstatus: FieldStatus.t) => {
+    let (v, attr) = param
     let adjv = switch (attr, field, fstatus) {
     | (Attribute.Speed, _, FieldStatus.Bad) => v -. 50.0
     | (Attribute.Power, Field.Turf, FieldStatus.Good) => v
@@ -91,8 +91,8 @@ module FieldFactor = {
 
     (adjv, attr)
   }
-  let forHpCoef = (baseCoef, field: Field.t, fstatus: FieldStatus.t) => {
-    baseCoef *.
+  let forHpCoef = (param, field: Field.t, fstatus: FieldStatus.t) => {
+    param *.
     switch (field, fstatus) {
     | (Field.Turf, FieldStatus.Poor | FieldStatus.Bad)
     | (Field.Dirt, FieldStatus.Bad) => 1.02
