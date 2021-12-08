@@ -4,3 +4,4 @@
 .bsb.lock
 .merlin
 package-lock.json
+.vscode

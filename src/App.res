@@ -85,8 +85,8 @@ let make = () => {
           <ListItem button={true} onClick={_ => "race"->nav}>
             <ListItemText primary={"Race Calculator"->trans} />
           </ListItem>
-          <ListItem button={true} onClick={_ => "ability"->nav}>
-            <ListItemText primary={"Ability Calculator"->trans} />
+          <ListItem button={true} onClick={_ => "stats"->nav}>
+            <ListItemText primary={"Stats Calculator"->trans} />
           </ListItem>
         </List>
       </div>

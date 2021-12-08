@@ -2,7 +2,9 @@ let init = () => {
   open I18next
 
   let options = InitOptions.make(
+    ~lng = "en",
     ~fallbackLng = FallBackLng.single("en"),
+    ~ns = NameSpace.string("common"),
     ~defaultNS = "common",
     ()
   )

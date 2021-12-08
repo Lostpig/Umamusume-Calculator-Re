@@ -31,6 +31,7 @@ module Parameters = {
   }
   type t = {
     base: base,
+    originAttribute: Attribute.dataInt,
     attribute: Attribute.dataFloat,
     race: Race.data,
     preference: Preference.data,
@@ -68,7 +69,7 @@ module Parameters = {
     let hp = floatDistance +. 0.8 *. StrategyFactor.forHp(stamina, strategy)
     let hpCoef = FieldFactor.forHpCoef(1.0, field, fstatus)
     let spurtCoef = 1.0 +. 200.0 /. sqrt(guts *. 600.0)
-    let minSpeed = 0.85 *. baseSpeed +. 0.01 *. sqrt(guts *. 200.0)
+    let minSpeed = 0.85 *. baseSpeed +. 0.001 *. sqrt(guts *. 200.0)
 
     {
       baseSpeed: baseSpeed,
@@ -85,6 +86,7 @@ module Parameters = {
 
     {
       base: base,
+      originAttribute: options.attribute,
       attribute: adjustAttrs,
       race: options.race,
       preference: options.preference,
@@ -207,7 +209,7 @@ module StageFirst = {
     let floatDistance = distance->Belt.Int.toFloat
     let stageDistance = floatDistance /. 6.0 -. starting.distance
 
-    let v0 = startingV1
+    let v0 = if (startingV1 > param.base.vMin) { startingV1 } else { param.base.vMin }
     let vTarget = param->targetSpeed(RaceStage.First)
     let a = vTarget < v0 ? -1.2 : param->acceleration(RaceStage.First)
     let v1 = realReachSpeed(~v0, ~vTarget, ~a, ~distance=stageDistance)
@@ -281,12 +283,7 @@ module StageLast = {
     result: parts,
   }
 
-  let calcV1ForSurplusHp = (
-    ~v0: float,
-    ~a: float,
-    ~surplusHp: float,
-    ~base: Parameters.base,
-  ) => {
+  let calcV1ForSurplusHp = (~v0: float, ~a: float, ~surplusHp: float, ~base: Parameters.base) => {
     let {baseSpeed, hpCoef, spurtCoef} = base
 
     let temp1 =
@@ -587,6 +584,12 @@ module StageLast = {
   }
 }
 
+type raceSummary = {
+  time: float,
+  displayTime: float,
+  cost: float,
+  surplusHp: float,
+}
 type raceInstance = {
   parameters: Parameters.t,
   starting: stage,
@@ -595,7 +598,9 @@ type raceInstance = {
   last: stage,
   spurt: stage,
   exhaustion: stage,
+  summary: raceSummary,
 }
+
 let calcRaceInstance = (options: raceOptions) => {
   let param = Parameters.make(options)
 
@@ -606,6 +611,18 @@ let calcRaceInstance = (options: raceOptions) => {
   let surplusHp = param.base.hp -. starting.cost -. first.cost -. middle.cost
   let lastParts = StageLast.make(param, ~middle, ~surplusHp)
 
+  let stages = [starting, first, middle, lastParts.normal, lastParts.spurt, lastParts.exhaustion]
+  let time = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.time)
+  let displayTime = time *. 1.18
+  let cost = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.cost)
+  let endSurplusHp = param.base.hp -. cost
+  let summary = {
+    time: time,
+    displayTime: displayTime,
+    cost: cost,
+    surplusHp: endSurplusHp,
+  }
+
   {
     parameters: param,
     starting: starting,
@@ -614,5 +631,6 @@ let calcRaceInstance = (options: raceOptions) => {
     last: lastParts.normal,
     spurt: lastParts.spurt,
     exhaustion: lastParts.exhaustion,
+    summary: summary,
   }
 }

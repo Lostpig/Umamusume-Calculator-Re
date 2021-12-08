@@ -1,5 +1,6 @@
 open MaterialUi
 open Uma.Variable
+open PageComponents
 module Rs = ReactDOMStyle
 module Calculate = Uma_Calculate
 
@@ -8,9 +9,6 @@ let ff3 = (num: float) => Js.Float.toFixedWithPrecision(num, ~digits=3)->React.s
 
 module Styles = %makeStyles({
   header: Rs.make(~margin="2rem 0", ()),
-  formContainer: Rs.make(~display="flex", ~alignItems="center", ()),
-  rowLable: Rs.make(~width="180px", ()),
-  rowContent: Rs.make(~flex="1", ()),
   formItem: Rs.make(~margin="10px", ~width="110px", ()),
   displayItem: Rs.make(
     ~margin="10px 10px 18px",
@@ -79,222 +77,6 @@ module Styles = %makeStyles({
     (),
   ),
 })
-
-module UmaEnumSelector = {
-  @react.component
-  let make = (
-    ~id: string,
-    ~label: React.element,
-    ~value: 'a,
-    ~onChange: 'a => unit,
-    ~enum: enumTuple<'a>,
-  ) => {
-    let (items, toString, toEnum) = enum
-    let classes = Styles.useStyles()
-    let wrapOnChange = (evt: ReactEvent.Form.t, _) => {
-      ReactEvent.Form.target(evt)["value"]->toEnum->onChange
-    }
-    let selectVal = value->toString->Select.Value.string
-
-    <FormControl className=classes.formItem>
-      <InputLabel htmlFor="" id> {label} </InputLabel>
-      <Select labelId=id value=selectVal onChange=wrapOnChange>
-        {items
-        ->Belt.List.map(val => {
-          let strVal = val->toString
-          <MenuItem value={strVal->MenuItem.Value.string}> {strVal->React.string} </MenuItem>
-        })
-        ->Belt.List.toArray}
-      </Select>
-    </FormControl>
-  }
-}
-
-module UmaFormContainer = {
-  @react.component
-  let make = (~label: React.element, ~children: 'children) => {
-    let classes = Styles.useStyles()
-
-    <div className=classes.formContainer>
-      <div className=classes.rowLable> {label} </div>
-      <div className=classes.rowContent> {children} </div>
-    </div>
-  }
-}
-
-type raceProps = {
-  attrs: Attribute.dataInt,
-  preferences: Preference.data,
-  status: Status.data,
-  race: Race.data,
-}
-
-type patch =
-  | PatchAttr(Attribute.dataInt)
-  | PatchPref(Preference.data)
-  | PatchStatus(Status.data)
-  | PatchRace(Race.data)
-
-module UmaAttributeForm = {
-  @react.component
-  let make = (~attrs: Attribute.dataInt, ~dispatch: patch => unit) => {
-    let classes = Styles.useStyles()
-    let (trans, _) = I18n.useSimpleTranslation()
-
-    let handleChange = (kind, evt: ReactEvent.Form.t) => {
-      let val = ReactEvent.Form.target(evt)["value"]->Belt.Int.fromString
-      switch val {
-      | Some(v) => attrs->Attribute.update(kind, v)->PatchAttr->dispatch
-      | None => ()
-      }
-    }
-
-    let (speed, stamina, power, guts, knowledge) = attrs
-    <UmaFormContainer label={"Base Attributes"->trans}>
-      <TextField
-        required={true}
-        className=classes.formItem
-        label={"Speed"->trans}
-        defaultValue={speed->dvInt}
-        onChange={Attribute.Speed->handleChange}
-      />
-      <TextField
-        required={true}
-        className=classes.formItem
-        label={"Stamina"->trans}
-        defaultValue={stamina->dvInt}
-        onChange={Attribute.Stamina->handleChange}
-      />
-      <TextField
-        required={true}
-        className=classes.formItem
-        label={"Power"->trans}
-        defaultValue={power->dvInt}
-        onChange={Attribute.Power->handleChange}
-      />
-      <TextField
-        required={true}
-        className=classes.formItem
-        label={"Guts"->trans}
-        defaultValue={guts->dvInt}
-        onChange={Attribute.Guts->handleChange}
-      />
-      <TextField
-        required={true}
-        className=classes.formItem
-        label={"Knowledge"->trans}
-        defaultValue={knowledge->dvInt}
-        onChange={Attribute.Knowledge->handleChange}
-      />
-    </UmaFormContainer>
-  }
-}
-module UmaPreferenceForm = {
-  @react.component
-  let make = (~pref: Preference.data, ~dispatch: patch => unit) => {
-    let (trans, _) = I18n.useSimpleTranslation()
-
-    let (field, distance, strategy) = pref
-    let handleChange = (kind, value) => {
-      pref->Preference.update(kind, value)->PatchPref->dispatch
-    }
-
-    <UmaFormContainer label={"Preference"->trans}>
-      <UmaEnumSelector
-        id="pref-field"
-        label={"Field"->trans}
-        value={field}
-        onChange={Preference.Field->handleChange}
-        enum=enumRank
-      />
-      <UmaEnumSelector
-        id="pref-distance"
-        label={"Distance"->trans}
-        value={distance}
-        onChange={Preference.Distance->handleChange}
-        enum=enumRank
-      />
-      <UmaEnumSelector
-        id="pref-strategy"
-        label={"Strategy"->trans}
-        value={strategy}
-        onChange={Preference.Strategy->handleChange}
-        enum=enumRank
-      />
-    </UmaFormContainer>
-  }
-}
-module UmaStatusForm = {
-  @react.component
-  let make = (~status: Status.data, ~dispatch: patch => unit) => {
-    let (trans, _) = I18n.useSimpleTranslation()
-    let (mood, strategy) = status
-
-    let statusChange = (val: Status.kind) => {
-      status->Status.update(val)->PatchStatus->dispatch
-    }
-
-    <UmaFormContainer label={"Umamusume Status"->trans}>
-      <UmaEnumSelector
-        id="status-mood"
-        label={"Mood"->trans}
-        value=mood
-        onChange={v => v->Status.Mood->statusChange}
-        enum=enumMood
-      />
-      <UmaEnumSelector
-        id="status-strategy"
-        label={"Strategy"->trans}
-        value=strategy
-        onChange={v => v->Status.Strategy->statusChange}
-        enum=enumStrategy
-      />
-    </UmaFormContainer>
-  }
-}
-module RaceForm = {
-  @react.component
-  let make = (~race: Race.data, ~dispatch: patch => unit) => {
-    let classes = Styles.useStyles()
-    let (trans, _) = I18n.useSimpleTranslation()
-    let (field, fstatus, length) = race
-
-    let fieldChange = val => {
-      race->Race.update(Race.Field(val))->PatchRace->dispatch
-    }
-    let fstatusChange = val => {
-      race->Race.update(Race.FStatus(val))->PatchRace->dispatch
-    }
-    let distanceChange = (evt: ReactEvent.Form.t) => {
-      let newVal = ReactEvent.Form.target(evt)["value"]->Belt.Int.fromString
-      switch newVal {
-      | Some(v) => race->Race.update(Race.Length(v))->PatchRace->dispatch
-      | None => ()
-      }
-    }
-
-    <UmaFormContainer label={"Race Settings"->trans}>
-      <UmaEnumSelector
-        id="race-field" label={"Field"->trans} value=field onChange=fieldChange enum=enumField
-      />
-      <UmaEnumSelector
-        id="race-fstatus"
-        label={"Field Status"->trans}
-        value=fstatus
-        onChange=fstatusChange
-        enum=enumFieldStatus
-      />
-      <TextField
-        className=classes.formItem
-        id="race-distance"
-        label={"Distance"->trans}
-        defaultValue={length->dvInt}
-        helperText={length->Distance.fromLength->Distance.toString->React.string}
-        onChange=distanceChange
-      />
-    </UmaFormContainer>
-  }
-}
 
 type valueColor = Normal | Surplus | Warning | Danger
 module ValueDisplayer = {
@@ -377,14 +159,7 @@ module RaceSummary = {
   @react.component
   let make = (~instance: Calculate.raceInstance) => {
     let (trans, _) = I18n.useSimpleTranslation()
-    let {starting, first, middle, last, spurt, exhaustion} = instance
-    let stages = [starting, first, middle, last, spurt, exhaustion]
-
-    let spurtDistance = spurt.distance
-    let time = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.time)
-    let displayTime = time *. 1.18
-    let cost = stages->Belt.Array.reduce(0.0, (p, c) => p +. c.cost)
-    let surplusHp = instance.parameters.base.hp -. cost
+    let {spurt, exhaustion, summary} = instance
 
     let exTimeColor = exhaustion.time > 1.0 ? Danger : exhaustion.time > 0.1 ? Warning : Surplus
     let exDisColor =
@@ -392,13 +167,13 @@ module RaceSummary = {
 
     <UmaFormContainer label={"Summary"->trans}>
       <ValueDisplayer
-        label={"Spurt Distance"->trans} sub={"m"->React.string} value={spurtDistance->ff3}
+        label={"Spurt Distance"->trans} sub={"m"->React.string} value={spurt.distance->ff3}
       />
-      <ValueDisplayer label={"Time"->trans} sub={"s"->React.string} value={time->ff3} />
+      <ValueDisplayer label={"Time"->trans} sub={"s"->React.string} value={summary.time->ff3} />
       <ValueDisplayer
-        label={"Display Time"->trans} sub={"s"->React.string} value={displayTime->ff3}
+        label={"Display Time"->trans} sub={"s"->React.string} value={summary.displayTime->ff3}
       />
-      <ValueDisplayer label={"Hp Remained"->trans} value={surplusHp->ff3} />
+      <ValueDisplayer label={"Hp Remained"->trans} value={summary.surplusHp->ff3} />
       <VDGroup caption={"Exhaustion"->trans}>
         <ValueDisplayer
           label={"Time"->trans}
@@ -469,6 +244,18 @@ module StageDetail = {
   }
 }
 
+type raceProps = {
+  attrs: Attribute.dataInt,
+  preferences: Preference.data,
+  status: Status.data,
+  race: Race.data,
+}
+type patch =
+  | PatchAttr(Attribute.dataInt)
+  | PatchPref(Preference.data)
+  | PatchStatus(Status.data)
+  | PatchRace(Race.data)
+
 @react.component
 let make = () => {
   let (trans, _) = I18n.useSimpleTranslation()
@@ -505,10 +292,10 @@ let make = () => {
 
   <>
     <h2 className=classes.header> {"Input"->trans} </h2>
-    <UmaAttributeForm attrs={raceState.attrs} dispatch />
-    <UmaPreferenceForm pref={raceState.preferences} dispatch />
-    <UmaStatusForm status={raceState.status} dispatch />
-    <RaceForm race={raceState.race} dispatch />
+    <UmaAttributeForm title={"Base Attribute"->trans} attrs={raceState.attrs} dispatch={v => v->PatchAttr->dispatch} />
+    <UmaPreferenceForm pref={raceState.preferences} dispatch={v => v->PatchPref->dispatch} />
+    <UmaStatusForm status={raceState.status} dispatch={v => v->PatchStatus->dispatch} />
+    <RaceSettingForm race={raceState.race} dispatch={v => v->PatchRace->dispatch} />
     <div> <Button onClick> {"Calculate"->trans} </Button> </div>
     {switch result {
     | Some(v) => <>
